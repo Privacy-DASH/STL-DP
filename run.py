@@ -261,8 +261,8 @@ if __name__=='__main__':
     # Test Process
     MAE = AverageMeter()
     MAPE = AverageMeter()
-    output_list = []
-    label_list = []
+    # output_list = []
+    # label_list = []
 
     for iter_idx, (inputs, labels) in tqdm(enumerate(eval_loader), total=len(eval_loader), desc="Evaluation"):
         inputs  = inputs.cuda(non_blocking=True)
@@ -275,18 +275,18 @@ if __name__=='__main__':
         MAE.update(MAE_.item(), inputs.shape[0])
         MAPE.update(MAPE_.item(), inputs.shape[0])
 
-        if len(output_list) <= 0:
-            output_list = outputs
-            label_list = labels
-        else:
-            output_list = torch.cat((output_list, outputs), dim=0)
-            label_list = torch.cat((label_list, labels), dim=0)
+        # if len(output_list) <= 0:
+        #     output_list = outputs
+        #     label_list = labels
+        # else:
+        #     output_list = torch.cat((output_list, outputs), dim=0)
+        #     label_list = torch.cat((label_list, labels), dim=0)
 
-    total_MAE = MAE_metric(output_list, label_list)
-    total_MAPE = MAPE_metric(output_list, label_list)
+    # total_MAE = MAE_metric(output_list, label_list)
+    # total_MAPE = MAPE_metric(output_list, label_list)
 
     print("DONE evaluation")
     f = open(f'{save_path}/eval_log.txt', 'w')
     f.write(f"Eval result | MAE {MAE.avg}, MAPE {MAPE.avg}\n")
-    f.write(f"Eval result | total MAE {total_MAE}, total MAPE {total_MAPE}\n")
+    # f.write(f"Eval result | total MAE {total_MAE}, total MAPE {total_MAPE}\n")
     f.close()
