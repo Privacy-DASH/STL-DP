@@ -1,0 +1,310 @@
+---
+title: "make_datasets"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load library
+```{r}
+library(ExtDist)
+library(diffpriv)
+library(stats)
+library(forecast)
+library(dplyr)
+library(xts)
+library(lubridate)
+```
+
+## Original set
+```{r}
+og <- read.csv('H:/내 드라이브/ShortPaper_sim/Original.csv',header=T)
+realset <- og[,7:9]
+head(realset)
+```
+
+## Make hourly data
+```{r}
+hZone1<-realset[seq(from=1,to=52416,by=6),1]
+hZone2<-realset[seq(from=1,to=52416,by=6),2]
+hZone3<-realset[seq(from=1,to=52416,by=6),3]
+```
+
+## Make New sets (LPA): baseline1
+```{r}
+# sensitivity: 42
+# epsilon 0.48 2.4 4.8, 24 
+
+sensitivity = 48
+epsilon = c(0.48, 2.4, 4.8, 24)
+
+for(i in 1:1){
+  mynoise <- cbind(rLaplace(8736,mu=0,b=sensitivity/epsilon[i]),rLaplace(8736,mu=0,b=sensitivity/epsilon[i]),rLaplace(8736,mu=0,b=sensitivity/epsilon[i]))
+  
+  newset <- cbind(hZone1,hZone2,hZone3) + mynoise
+  
+  assign(paste0('LPAepsilon',i),newset)
+  }
+```
+
+## Make New sets (FPA): baseline2 
+```{r}
+mydft<-function(data,j){
+sumup=0
+    for(k in 1:length(data)){
+  sumup= exp(2*pi*1i*j*k/length(data))*data[k]+sumup }
+return(sumup)
+}
+
+myidft<-function(data,j){
+  sumup=0
+  for(k in 1:length(data)){
+    sumup= exp(-2*pi*1i*j*k/length(data))*data[k]/length(data)+sumup }
+  return(sumup)
+}
+```
+
+
+```{r}
+dft1<-c(mydft(hZone1,1:length(hZone1)))
+
+for(i in 1:4){
+  mynoise <- rLaplace(8736,mu=0,b=sensitivity/epsilon[i])
+  
+  newset <- dft1 + mynoise
+  
+  assign(paste0('FPAepsilon',i),newset)
+}
+
+Zone1idft1<-c(myidft(FPAepsilon1,1:length(dft1)))
+Zone1idft2<-c(myidft(FPAepsilon2,1:length(dft1)))
+Zone1idft3<-c(myidft(FPAepsilon3,1:length(dft1)))
+Zone1idft4<-c(myidft(FPAepsilon4,1:length(dft1)))
+
+dft2<-c(mydft(hZone2,1:length(hZone2)))
+
+for(i in 1:4){
+  mynoise <- rLaplace(8736,mu=0,b=sensitivity/epsilon[i])
+  
+  newset <- dft2 + mynoise
+  
+  assign(paste0('FPAepsilon',i),newset)
+}
+
+Zone2idft1<-c(myidft(FPAepsilon1,1:length(dft1)))
+Zone2idft2<-c(myidft(FPAepsilon2,1:length(dft1)))
+Zone2idft3<-c(myidft(FPAepsilon3,1:length(dft1)))
+Zone2idft4<-c(myidft(FPAepsilon4,1:length(dft1)))
+
+dft3<-c(mydft(hZone3,1:length(hZone1)))
+
+for(i in 1:4){
+  mynoise <- rLaplace(8736,mu=0,b=sensitivity/epsilon[i])
+  
+  newset <- dft3 + mynoise
+  
+  assign(paste0('FPAepsilon',i),newset)
+}
+
+Zone3idft1<-c(myidft(FPAepsilon1,1:length(dft1)))
+Zone3idft2<-c(myidft(FPAepsilon2,1:length(dft1)))
+Zone3idft3<-c(myidft(FPAepsilon3,1:length(dft1)))
+Zone3idft4<-c(myidft(FPAepsilon4,1:length(dft1)))
+
+FPAepsilon1<-cbind(Zone1idft1,Zone2idft1,Zone3idft1)
+FPAepsilon2<-cbind(Zone1idft2,Zone2idft2,Zone3idft2)
+FPAepsilon3<-cbind(Zone1idft3,Zone2idft3,Zone3idft3)
+FPAepsilon4<-cbind(Zone1idft4,Zone2idft4,Zone3idft4)
+```
+
+## Make New sets (FPA with STL)
+```{r}
+tZone1<-ts(hZone1,,frequency=24)
+tZone2<-ts(hZone2,frequency=24)
+tZone3<-ts(hZone3,frequency=24)
+
+stl1<-stl(tZone1,s.window="periodic")
+stl2<-stl(tZone2,s.window="periodic")
+stl3<-stl(tZone3,s.window="periodic")
+
+s_zone1 <-seasonal(stl1)
+t_zone1 <-trendcycle(stl1)
+r_zone1 <-remainder(stl1)
+
+s_zone2 <-seasonal(stl2)
+t_zone2 <-trendcycle(stl2)
+r_zone2 <-remainder(stl2)
+
+s_zone3 <-seasonal(stl3)
+t_zone3 <-trendcycle(stl3)
+r_zone3 <-remainder(stl3)
+```
+
+```{r}
+sdft1<-c(mydft(s_zone1,1:length(hZone1)))
+
+for(i in 1:4){
+  mynoise <- rLaplace(8736,mu=0,b=sensitivity/epsilon[i])
+  
+  newset <- sdft1 + mynoise
+  
+  assign(paste0('FPAepsilon',i),newset)
+}
+
+sZone1idft1<-c(myidft(FPAepsilon1,1:length(dft1)))
+sZone1idft2<-c(myidft(FPAepsilon2,1:length(dft1)))
+sZone1idft3<-c(myidft(FPAepsilon3,1:length(dft1)))
+sZone1idft4<-c(myidft(FPAepsilon4,1:length(dft1)))
+
+sdft2<-c(mydft(s_zone2,1:length(hZone2)))
+
+for(i in 1:4){
+  mynoise <- rLaplace(8736,mu=0,b=sensitivity/epsilon[i])
+  
+  newset <- sdft2 + mynoise
+  
+  assign(paste0('FPAepsilon',i),newset)
+}
+
+sZone2idft1<-c(myidft(FPAepsilon1,1:length(dft1)))
+sZone2idft2<-c(myidft(FPAepsilon2,1:length(dft1)))
+sZone2idft3<-c(myidft(FPAepsilon3,1:length(dft1)))
+sZone2idft4<-c(myidft(FPAepsilon4,1:length(dft1)))
+
+sdft3<-c(mydft(s_zone3,1:length(hZone1)))
+
+for(i in 1:4){
+  mynoise <- rLaplace(8736,mu=0,b=sensitivity/epsilon[i])
+  
+  newset <- sdft3 + mynoise
+  
+  assign(paste0('FPAepsilon',i),newset)
+}
+
+sZone3idft1<-c(myidft(FPAepsilon1,1:length(dft1)))
+sZone3idft2<-c(myidft(FPAepsilon2,1:length(dft1)))
+sZone3idft3<-c(myidft(FPAepsilon3,1:length(dft1)))
+sZone3idft4<-c(myidft(FPAepsilon4,1:length(dft1)))
+
+sFPAepsilon1<-cbind(sZone1idft1+t_zone1+r_zone1,sZone2idft1+t_zone2+r_zone2,sZone3idft1+t_zone3+r_zone3)
+sFPAepsilon2<-cbind(sZone1idft2+t_zone1+r_zone1,sZone2idft2+t_zone2+r_zone2,sZone3idft2+t_zone3+r_zone3)
+sFPAepsilon3<-cbind(sZone1idft3+t_zone1+r_zone1,sZone2idft3+t_zone2+r_zone2,sZone3idft3+t_zone3+r_zone3)
+sFPAepsilon4<-cbind(sZone1idft4+t_zone1+r_zone1,sZone2idft4+t_zone2+r_zone2,sZone3idft4+t_zone3+r_zone3)
+```
+
+```{r}
+tdft1<-c(mydft(t_zone1,1:length(hZone1)))
+
+for(i in 1:4){
+  mynoise <- rLaplace(8736,mu=0,b=sensitivity/epsilon[i])
+  
+  newset <- tdft1 + mynoise
+  
+  assign(paste0('FPAepsilon',i),newset)
+}
+
+tZone1idft1<-c(myidft(FPAepsilon1,1:length(dft1)))
+tZone1idft2<-c(myidft(FPAepsilon2,1:length(dft1)))
+tZone1idft3<-c(myidft(FPAepsilon3,1:length(dft1)))
+tZone1idft4<-c(myidft(FPAepsilon4,1:length(dft1)))
+
+tdft2<-c(mydft(t_zone2,1:length(hZone2)))
+
+for(i in 1:4){
+  mynoise <- rLaplace(8736,mu=0,b=sensitivity/epsilon[i])
+  
+  newset <- tdft2 + mynoise
+  
+  assign(paste0('FPAepsilon',i),newset)
+}
+
+tZone2idft1<-c(myidft(FPAepsilon1,1:length(dft1)))
+tZone2idft2<-c(myidft(FPAepsilon2,1:length(dft1)))
+tZone2idft3<-c(myidft(FPAepsilon3,1:length(dft1)))
+tZone2idft4<-c(myidft(FPAepsilon4,1:length(dft1)))
+
+tdft3<-c(mydft(t_zone3,1:length(hZone1)))
+
+for(i in 1:4){
+  mynoise <- rLaplace(8736,mu=0,b=sensitivity/epsilon[i])
+  
+  newset <- tdft3 + mynoise
+  
+  assign(paste0('FPAepsilon',i),newset)
+}
+
+tZone3idft1<-c(myidft(FPAepsilon1,1:length(dft1)))
+tZone3idft2<-c(myidft(FPAepsilon2,1:length(dft1)))
+tZone3idft3<-c(myidft(FPAepsilon3,1:length(dft1)))
+tZone3idft4<-c(myidft(FPAepsilon4,1:length(dft1)))
+
+tFPAepsilon1<-cbind(tZone1idft1+s_zone1+r_zone1,tZone2idft1+s_zone2+r_zone2,tZone3idft1+s_zone3+r_zone3)
+tFPAepsilon2<-cbind(tZone1idft2+s_zone1+r_zone1,tZone2idft2+s_zone2+r_zone2,tZone3idft2+s_zone3+r_zone3)
+tFPAepsilon3<-cbind(tZone1idft3+s_zone1+r_zone1,tZone2idft3+s_zone2+r_zone2,tZone3idft3+s_zone3+r_zone3)
+tFPAepsilon4<-cbind(tZone1idft4+s_zone1+r_zone1,tZone2idft4+s_zone2+r_zone2,tZone3idft4+s_zone3+r_zone3)
+
+```
+
+
+```{r}
+setwd("H:/내 드라이브/ShortPaper_Sim")
+
+
+write.csv(LPAepsilon1,"newLPAepsilon1.csv")
+write.csv(LPAepsilon2,"LPAepsilon2.csv")
+write.csv(LPAepsilon3,"LPAepsilon3.csv")
+write.csv(LPAepsilon4,"LPAepsilon4.csv")
+
+write.csv(FPAepsilon1, "FPAepsilon1.csv")
+write.csv(FPAepsilon2, "FPAepsilon2.csv")
+write.csv(FPAepsilon3, "FPAepsilon3.csv")
+write.csv(FPAepsilon4, "FPAepsilon4.csv")
+
+write.csv(sFPAepsilon1, "sFPAepsilon1.csv")
+write.csv(sFPAepsilon2, "sFPAepsilon2.csv")
+write.csv(sFPAepsilon3, "sFPAepsilon3.csv")
+write.csv(sFPAepsilon4, "sFPAepsilon4.csv")
+
+write.csv(tFPAepsilon1, "tFPAepsilon1.csv")
+write.csv(tFPAepsilon2, "tFPAepsilon2.csv")
+write.csv(tFPAepsilon3, "tFPAepsilon3.csv")
+write.csv(tFPAepsilon4, "tFPAepsilon4.csv")
+```
+
+## For real part 
+```{r}
+reFPAepsilon1 <- cbind(Re(FPAepsilon1[,2]),Re(FPAepsilon1[,3]),Re(FPAepsilon1[,4]))
+reFPAepsilon2 <- cbind(Re(FPAepsilon2[,2]),Re(FPAepsilon2[,3]),Re(FPAepsilon2[,4]))
+reFPAepsilon3 <- cbind(Re(FPAepsilon3[,2]),Re(FPAepsilon3[,3]),Re(FPAepsilon3[,4]))
+reFPAepsilon4 <- cbind(Re(FPAepsilon4[,2]),Re(FPAepsilon4[,3]),Re(FPAepsilon4[,4]))
+
+sreFPAepsilon1 <- cbind(Re(sFPAepsilon1[,2]),Re(sFPAepsilon1[,3]),Re(sFPAepsilon1[,4]))
+sreFPAepsilon2 <- cbind(Re(sFPAepsilon2[,2]),Re(sFPAepsilon2[,3]),Re(sFPAepsilon2[,4]))
+sreFPAepsilon3 <- cbind(Re(sFPAepsilon3[,2]),Re(sFPAepsilon3[,3]),Re(sFPAepsilon3[,4]))
+sreFPAepsilon4 <- cbind(Re(sFPAepsilon4[,2]),Re(sFPAepsilon4[,3]),Re(sFPAepsilon4[,4]))
+
+treFPAepsilon1 <- cbind(Re(tFPAepsilon1[,2]),Re(tFPAepsilon1[,3]),Re(tFPAepsilon1[,4]))
+treFPAepsilon2 <- cbind(Re(tFPAepsilon2[,2]),Re(tFPAepsilon2[,3]),Re(tFPAepsilon2[,4]))
+treFPAepsilon3 <- cbind(Re(tFPAepsilon3[,2]),Re(tFPAepsilon3[,3]),Re(tFPAepsilon3[,4]))
+treFPAepsilon4 <- cbind(Re(tFPAepsilon4[,2]),Re(tFPAepsilon4[,3]),Re(tFPAepsilon4[,4]))
+
+```
+
+```{r}
+write.csv(reFPAepsilon1, "H:/내 드라이브/reFPAepsilon1.csv")
+write.csv(reFPAepsilon2, "H:/내 드라이브/reFPAepsilon2.csv")
+write.csv(reFPAepsilon3, "H:/내 드라이브/reFPAepsilon3.csv")
+write.csv(reFPAepsilon4, "H:/내 드라이브/reFPAepsilon4.csv")
+
+write.csv(sreFPAepsilon1, "H:/내 드라이브/sreFPAepsilon1.csv")
+write.csv(sreFPAepsilon2, "H:/내 드라이브/sreFPAepsilon2.csv")
+write.csv(sreFPAepsilon3, "H:/내 드라이브/sreFPAepsilon3.csv")
+write.csv(sreFPAepsilon4, "H:/내 드라이브/sreFPAepsilon4.csv")
+
+write.csv(treFPAepsilon1, "H:/내 드라이브/treFPAepsilon1.csv")
+write.csv(treFPAepsilon2, "H:/내 드라이브/treFPAepsilon2.csv")
+write.csv(treFPAepsilon3, "H:/내 드라이브/treFPAepsilon3.csv")
+write.csv(treFPAepsilon4, "H:/내 드라이브/treFPAepsilon4.csv")
+```
