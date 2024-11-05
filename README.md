@@ -1,5 +1,7 @@
 # STL-DP: Differentially Private Time Series Exploring Decomposition and Compression Methods
 
+![STL-DP](https://github.com/user-attachments/assets/101fd014-8736-4928-bff5-55c98e8d170a)
+
 This repository contains the official implementation for the paper "[STL-DP: Differentially Private Time Series Exploring Decomposition and Compression Methods](https://ceur-ws.org/Vol-3318/short5.pdf)" presented at the CIKM-PAS Workshop 2022.
 
 ## Data Preparation
@@ -17,7 +19,9 @@ This repository contains the official implementation for the paper "[STL-DP: Dif
 
 ## Measuring Euclidean Distance Between Original and Perturbed Data
 Run `Euclidean_dist_2.Rmd`
+![Table1](https://github.com/user-attachments/assets/9fb6760e-1d3f-4f19-90d8-40932e83887c)
 
 ## Measuring Delta MAPE
 Run `run.py`  
 Results and logs are saved in the `results/` directory.
+![Table2](https://github.com/user-attachments/assets/58811e2a-5c89-4a65-9fdc-c1cb2b0ea5ba)
